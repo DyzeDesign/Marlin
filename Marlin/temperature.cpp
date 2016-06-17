@@ -187,6 +187,10 @@ unsigned char Temperature::soft_pwm[HOTENDS];
   int Temperature::current_raw_filwidth = 0;  //Holds measured filament diameter - one extruder only
 #endif
 
+#if HAS_ANALOG_FILRUNOUT
+  int Temperature::current_raw_filrunout = 0;
+#endif
+
 #if HAS_PID_HEATING
 
   void Temperature::PID_autotune(float temp, int hotend, int ncycles, bool set_result/*=false*/) {
@@ -883,6 +887,9 @@ void Temperature::updateTemperaturesFromRawValues() {
   #if ENABLED(FILAMENT_WIDTH_SENSOR)
     filament_width_meas = analog2widthFil();
   #endif
+  #if HAS_ANALOG_FILRUNOUT
+    filrunout_range_meas = analog2Volt();
+  #endif
 
   #if ENABLED(USE_WATCHDOG)
     // Reset the watchdog after we know we have a temperature measurement.
@@ -913,6 +920,24 @@ void Temperature::updateTemperaturesFromRawValues() {
 
 #endif
 
+#if HAS_ANALOG_FILRUNOUT
+
+  // Convert raw values read to volt
+  float Temperature::analog2Volt() {
+     return current_raw_filrunout / 16383.0 * 5.0;
+  }
+
+  // convert analog readings to bool indicating if a filament is present
+  bool Temperature::hasFilament()
+  {
+     float anal2v = analog2Volt();
+     SERIAL_ECHO(" HAS FILAMENT: ");
+     SERIAL_ECHOLN(anal2v);
+
+     return analog2Volt() > 2.5;
+  }
+
+#endif
 
 /**
  * Initialize the temperature manager
@@ -1335,6 +1360,8 @@ enum TempState {
   MeasureTemp_3,
   Prepare_FILWIDTH,
   Measure_FILWIDTH,
+  Prepare_ANALOG_FILRUNOUT,
+  Measure_ANALOG_FILRUNOUT,
   StartupDelay // Startup, delay initial temp reading a tiny bit so the hardware can settle
 };
 
@@ -1405,6 +1432,10 @@ void Temperature::isr() {
 
   #if ENABLED(FILAMENT_WIDTH_SENSOR)
     static unsigned long raw_filwidth_value = 0;
+  #endif
+
+  #if HAS_ANALOG_FILRUNOUT//ENABLED()
+    static unsigned long raw_filrunout_value = 0;
   #endif
 
   #if DISABLED(SLOW_PWM_HEATERS)
@@ -1693,11 +1724,28 @@ void Temperature::isr() {
       break;
     case Measure_FILWIDTH:
       #if ENABLED(FILAMENT_WIDTH_SENSOR)
-        // raw_filwidth_value += ADC;  //remove to use an IIR filter approach
-        if (ADC > 102) { //check that ADC is reading a voltage > 0.5 volts, otherwise don't take in the data.
+       // raw_filwidth_value += ADC;  //remove to use an IIR filter approach
+       if (ADC > 102) { //check that ADC is reading a voltage > 0.5 volts, otherwise don't take in the data.
           raw_filwidth_value -= (raw_filwidth_value >> 7); //multiply raw_filwidth_value by 127/128
           raw_filwidth_value += ((unsigned long)ADC << 7); //add new ADC reading
         }
+      #endif
+      temp_state = Prepare_ANALOG_FILRUNOUT;
+      temp_count++;
+      break;
+
+   case Prepare_ANALOG_FILRUNOUT:
+      #if HAS_ANALOG_FILRUNOUT
+        START_ADC(FILRUNOUT_ANALOG_PIN);
+      #endif
+      lcd_buttons_update();
+      temp_state = Measure_ANALOG_FILRUNOUT;
+      break;
+    case Measure_ANALOG_FILRUNOUT:
+      #if HAS_ANALOG_FILRUNOUT
+       raw_filrunout_value -= (raw_filrunout_value >> 7); //multiply raw_filrunout_value by 127/128
+       raw_filrunout_value += ((unsigned long)ADC << 7); //add new ADC reading
+       //raw_filrunout_value += ADC;
       #endif
       temp_state = PrepareTemp_0;
       temp_count++;
@@ -1720,6 +1768,11 @@ void Temperature::isr() {
     // Filament Sensor - can be read any time since IIR filtering is used
     #if ENABLED(FILAMENT_WIDTH_SENSOR)
       current_raw_filwidth = raw_filwidth_value >> 10;  // Divide to get to 0-16384 range since we used 1/128 IIR filter approach
+    #endif
+
+    #if HAS_ANALOG_FILRUNOUT
+      current_raw_filrunout = raw_filrunout_value >> 10;  // Divide to get to 0-16384 range since we used 1/128 IIR filter approach
+      //current_raw_filrunout = raw_filrunout_value; js// add IIR filter there too
     #endif
 
     temp_count = 0;

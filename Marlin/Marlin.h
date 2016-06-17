@@ -236,7 +236,10 @@ void kill(const char*);
 
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
   void handle_filament_runout();
-#endif
+  #if HAS_ANALOG_FILRUNOUT//ENABLED(FILRUNOUT_ANALOG_PIN)
+    void test_analog_fialement_runout();
+  #endif //FILAMENT_RUNOUT_ANALOG_PIN
+#endif // FILAMENT_RUNOUT_SENSOR
 
 /**
  * Debug flags - not yet widely applied
@@ -344,6 +347,10 @@ float code_value_temp_diff();
   extern int8_t measurement_delay[];  //ring buffer to delay measurement
   extern int filwidth_delay_index1, filwidth_delay_index2;  //ring buffer index. used by planner, temperature, and main code
   extern int meas_delay_cm; //delay distance
+#endif
+
+#if HAS_ANALOG_FILRUNOUT
+  extern float filrunout_range_meas; // holds the value for the filament detection
 #endif
 
 #if ENABLED(PID_ADD_EXTRUSION_RATE)

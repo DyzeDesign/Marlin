@@ -194,6 +194,10 @@ class Temperature {
       static int current_raw_filwidth;  //Holds measured filament diameter - one extruder only
     #endif
 
+    #if HAS_ANALOG_FILRUNOUT//ENABLED()
+      static int current_raw_filrunout;  //Holds 
+    #endif
+
   public:
 
     /**
@@ -223,6 +227,11 @@ class Temperature {
     #if ENABLED(FILAMENT_WIDTH_SENSOR)
       static float analog2widthFil(); // Convert raw Filament Width to millimeters
       static int widthFil_to_size_ratio(); // Convert raw Filament Width to an extrusion ratio
+    #endif
+
+    #if HAS_ANALOG_FILRUNOUT
+      static float analog2Volt();
+      static bool hasFilament();
     #endif
 
 

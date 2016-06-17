@@ -471,6 +471,10 @@ static uint8_t target_extruder;
   int meas_delay_cm = MEASUREMENT_DELAY_CM;  //distance delay setting
 #endif
 
+#if HAS_ANALOG_FILRUNOUT
+  float filrunout_range_meas = 0.0; // holds the value for the filament detection
+#endif
+
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
   static bool filament_ran_out = false;
 #endif
@@ -8106,6 +8110,8 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
   #if HAS_FILRUNOUT
     if (IS_SD_PRINTING && !(READ(FILRUNOUT_PIN) ^ FIL_RUNOUT_INVERTING))
       handle_filament_runout();
+  #elif HAS_ANALOG_FILRUNOUT
+    test_analog_fialement_runout();
   #endif
 
   if (commands_in_queue < BUFSIZE) get_available_commands();
@@ -8295,7 +8301,12 @@ void kill(const char* lcd_msg) {
       stepper.synchronize();
     }
   }
-
+  # if HAS_ANALOG_FILRUNOUT
+    void test_analog_fialement_runout() {
+      if (Temperature::hasFilament())
+         handle_filament_runout();
+    }
+  #endif // HAS_ANALOG_FILRUNOUT
 #endif // FILAMENT_RUNOUT_SENSOR
 
 #if ENABLED(FAST_PWM_FAN)

@@ -508,7 +508,7 @@ const bool Z_MIN_PROBE_ENDSTOP_INVERTING = false; // set to true to invert the l
 //===========================================================================
 //========================= Filament Runout Sensor ==========================
 //===========================================================================
-//#define FILAMENT_RUNOUT_SENSOR // Uncomment for defining a filament runout sensor such as a mechanical or opto endstop to check the existence of filament
+#define FILAMENT_RUNOUT_SENSOR // Uncomment for defining a filament runout sensor such as a mechanical or opto endstop to check the existence of filament
                                  // In RAMPS uses servo pin 2. Can be changed in pins file. For other boards pin definition should be made.
                                  // It is assumed that when logic high = filament available
                                  //                    when logic  low = filament ran out
@@ -516,8 +516,15 @@ const bool Z_MIN_PROBE_ENDSTOP_INVERTING = false; // set to true to invert the l
   const bool FIL_RUNOUT_INVERTING = true;  // Should be uncommented and true or false should assigned
   #define ENDSTOPPULLUP_FIL_RUNOUT // Uncomment to use internal pullup for filament runout pins if the sensor is defined.
   #define FILAMENT_RUNOUT_SCRIPT "M600"
-#endif
 
+   // Uncomment to use an analog pin instead of a digital pin for filament runout
+   // Analog pins offer greater precision when reading (1024 values instead of low/high), 
+   // which can be required to reliably handle transparent/translucent filaments.
+   // It is assumed that there is no filament for values between 0 and 127
+   //                    there is a filament for values between 128 and 1023
+   #define FILRUNOUT_ANALOG_PIN 4 
+#endif
+                        
 //===========================================================================
 //============================ Mesh Bed Leveling ============================
 //===========================================================================
