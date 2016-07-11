@@ -29,7 +29,14 @@
  *  MKS v1.4  (Extruder, Extruder, Fan, Bed)
  */
 
+#define BOARD_NAME "MKS > v1.3"
+
 #include "pins_RAMPS_14_EFB.h"
 
 #undef HEATER_1_PIN
 #define HEATER_1_PIN        7 // EXTRUDER 2 (-1 on RAMPS 1.4)
+
+#if ENABLED(VIKI2) || ENABLED(miniVIKI)
+  //#undef SD_DETECT_PIN
+  //#define SD_DETECT_PIN 49  // For easy adapter board
+#endif

@@ -53,6 +53,8 @@
 
 #include <U8glib.h>
 #include "dogm_bitmaps.h"
+#include "dogm_custom_bitmaps.h"
+
 
 #include "ultralcd.h"
 #include "ultralcd_st7920_u8glib_rrd.h"
@@ -83,6 +85,9 @@
   #elif ENABLED(DISPLAY_CHARSET_ISO10646_KANA)
     #include "dogm_font_data_ISO10646_Kana.h"
     #define FONT_MENU_NAME ISO10646_Kana_5x7
+  #elif ENABLED(DISPLAY_CHARSET_ISO10646_GREEK)
+    #include "dogm_font_data_ISO10646_Greek.h"
+    #define FONT_MENU_NAME ISO10646_Greek_5x7
   #elif ENABLED(DISPLAY_CHARSET_ISO10646_CN)
     #include "dogm_font_data_ISO10646_CN.h"
     #define FONT_MENU_NAME ISO10646_CN
@@ -139,6 +144,9 @@
 #if ENABLED(U8GLIB_ST7920)
   //U8GLIB_ST7920_128X64_RRD u8g(0,0,0);
   U8GLIB_ST7920_128X64_RRD u8g(0);
+#elif defined(CARTESIO_UI)
+  // The CartesioUI display with SW-SPI
+  U8GLIB_DOGM128 u8g(DOGLCD_SCK, DOGLCD_MOSI, DOGLCD_CS, DOGLCD_A0);
 #elif ENABLED(U8GLIB_LM6059_AF)
   // Based on the Adafruit ST7565 (http://www.adafruit.com/products/250)
   U8GLIB_LM6059 u8g(DOGLCD_CS, DOGLCD_A0);
@@ -247,6 +255,15 @@ static void lcd_implementation_init() {
   #endif
 
   #if ENABLED(SHOW_BOOTSCREEN)
+    #if ENABLED(CUSTOM_START_BMP)
+      if (show_bootscreen) {
+        u8g.firstPage();
+        do {
+            u8g.drawBitmapP((128-(CUSTOM_START_BMPWIDTH))/2, (64 - (CUSTOM_START_BMPHEIGHT))/2, CUSTOM_START_BMPBYTEWIDTH, CUSTOM_START_BMPHEIGHT, custom_start_bmp);
+        } while (u8g.nextPage());
+        delay(CUSTOM_START_BMP_DELAY);
+      }
+    #endif
     int offx = (u8g.getWidth() - (START_BMPWIDTH)) / 2;
     #if ENABLED(START_BMPHIGH)
       int offy = 0;
@@ -271,11 +288,19 @@ static void lcd_implementation_init() {
       }
     } while (u8g.nextPage());
 
-    if (show_bootscreen) {
-      delay(1000);
-      show_bootscreen = false;
-    }
+    show_bootscreen = false;
+
   #endif
+}
+
+void lcd_kill_screen() {
+  lcd_setFont(FONT_MENU);
+  u8g.setPrintPos(0, u8g.getHeight()/4*1);
+  lcd_print(lcd_status_message);
+  u8g.setPrintPos(0, u8g.getHeight()/4*2);
+  lcd_printPGM(PSTR(MSG_HALTED));
+  u8g.setPrintPos(0, u8g.getHeight()/4*3);
+  lcd_printPGM(PSTR(MSG_PLEASE_RESET));
 }
 
 static void lcd_implementation_clear() { } // Automatically cleared by Picture Loop
@@ -370,7 +395,7 @@ static void lcd_implementation_status_screen() {
   #endif
 
   // Extruders
-  for (int i = 0; i < HOTENDS; i++) _draw_heater_status(5 + i * 25, i);
+  HOTEND_LOOP() _draw_heater_status(5 + e * 25, e);
 
   // Heated bed
   #if HOTENDS < 4 && HAS_TEMP_BED
@@ -461,7 +486,33 @@ static void lcd_implementation_mark_as_selected(uint8_t row, bool isSelected) {
   u8g.setPrintPos((START_ROW) * (DOG_CHAR_WIDTH), (row + 1) * (DOG_CHAR_HEIGHT));
 }
 
+#if ENABLED(LCD_INFO_MENU) || ENABLED(FILAMENT_CHANGE_FEATURE)
+
+  static void lcd_implementation_drawmenu_static(uint8_t row, const char* pstr, const char* valstr=NULL, bool center=true) {
+    char c;
+    int8_t n = LCD_WIDTH;
+    u8g.setPrintPos(0, (row + 1) * (DOG_CHAR_HEIGHT));
+    u8g.setColorIndex(1); // normal text
+    if (center && !valstr) {
+      int8_t pad = (LCD_WIDTH - lcd_strlen_P(pstr)) / 2;
+      while (--pad >= 0) { lcd_print(' '); n--; }
+    }
+    while (c = pgm_read_byte(pstr)) {
+      n -= lcd_print(c);
+      pstr++;
+    }
+    if (valstr) {
+      lcd_print(valstr);
+      n -= lcd_strlen(valstr);
+    }
+    while (n-- > 0) lcd_print(' ');
+  }
+
+#endif // LCD_INFO_MENU || FILAMENT_CHANGE_FEATURE
+
 static void lcd_implementation_drawmenu_generic(bool isSelected, uint8_t row, const char* pstr, char pre_char, char post_char) {
+  UNUSED(pre_char);
+
   char c;
   uint8_t n = LCD_WIDTH - 2;
 
@@ -552,6 +603,7 @@ void lcd_implementation_drawedit(const char* pstr, const char* value=NULL) {
 #if ENABLED(SDSUPPORT)
 
   static void _drawmenu_sd(bool isSelected, uint8_t row, const char* pstr, const char* filename, char* const longFilename, bool isDir) {
+    UNUSED(pstr);
     char c;
     uint8_t n = LCD_WIDTH - 1;
 

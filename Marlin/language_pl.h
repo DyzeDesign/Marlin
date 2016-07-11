@@ -167,7 +167,8 @@
 #define MSG_INIT_SDCARD                     "Inicjal. karty SD"
 #define MSG_CNG_SDCARD                      "Zmiana karty SD"
 #define MSG_ZPROBE_OUT                      "Sonda Z za lozem"
-#define MSG_YX_UNHOMED                      "Wroc w XY przed Z"
+#define MSG_HOME                            "Home"  // Used as MSG_HOME " " MSG_X MSG_Y MSG_Z " " MSG_FIRST
+#define MSG_FIRST                           "first"
 #define MSG_ZPROBE_ZOFFSET                  "Offset Z"
 #define MSG_BABYSTEP_X                      "Babystep X"
 #define MSG_BABYSTEP_Y                      "Babystep Y"
@@ -186,10 +187,10 @@
 #define MSG_HEATING_COMPLETE                "Rozgrzano"
 #define MSG_BED_HEATING                     "Rozgrzewanie loza..."
 #define MSG_BED_DONE                        "Rozgrzano loze"
-#define MSG_DELTA_CALIBRATE               	"Kalibrowanie Delty"
-#define MSG_DELTA_CALIBRATE_X             	"Kalibruj X"
-#define MSG_DELTA_CALIBRATE_Y             	"Kalibruj Y"
-#define MSG_DELTA_CALIBRATE_Z             	"Kalibruj Z"
-#define MSG_DELTA_CALIBRATE_CENTER        	"Kalibruj środek"
+#define MSG_DELTA_CALIBRATE                 "Kalibrowanie Delty"
+#define MSG_DELTA_CALIBRATE_X               "Kalibruj X"
+#define MSG_DELTA_CALIBRATE_Y               "Kalibruj Y"
+#define MSG_DELTA_CALIBRATE_Z               "Kalibruj Z"
+#define MSG_DELTA_CALIBRATE_CENTER          "Kalibruj środek"
 
 #endif // LANGUAGE_PL_H

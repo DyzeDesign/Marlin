@@ -84,8 +84,9 @@ typedef unsigned long millis_t;
 #define SERIAL_PROTOCOL_F(x,y) MYSERIAL.print(x,y)
 #define SERIAL_PROTOCOLPGM(x) serialprintPGM(PSTR(x))
 #define SERIAL_PROTOCOLLN(x) do{ MYSERIAL.print(x); SERIAL_EOL; }while(0)
-#define SERIAL_PROTOCOLLNPGM(x) do{ serialprintPGM(PSTR(x)); SERIAL_EOL; }while(0)
+#define SERIAL_PROTOCOLLNPGM(x) do{ serialprintPGM(PSTR(x "\n")); }while(0)
 
+#define SERIAL_PROTOCOLPAIR(name, value) SERIAL_ECHOPAIR(name, value)
 
 extern const char errormagic[] PROGMEM;
 extern const char echomagic[] PROGMEM;
@@ -122,8 +123,8 @@ FORCE_INLINE void serialprintPGM(const char* str) {
 }
 
 void idle(
-  #if ENABLED(FILAMENTCHANGEENABLE)
-    bool no_stepper_sleep=false  // pass true to keep steppers from disabling on timeout
+  #if ENABLED(FILAMENT_CHANGE_FEATURE)
+    bool no_stepper_sleep = false  // pass true to keep steppers from disabling on timeout
   #endif
 );
 
@@ -227,12 +228,9 @@ void FlushSerialRequestResend();
 void ok_to_send();
 
 void reset_bed_level();
-void prepare_move();
 void kill(const char*);
 
-#if DISABLED(DELTA) && DISABLED(SCARA)
-  void set_current_position_from_planner();
-#endif
+void quickstop_stepper();
 
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
   void handle_filament_runout();
@@ -288,6 +286,7 @@ extern float sw_endstop_min[3]; // axis[n].sw_endstop_min
 extern float sw_endstop_max[3]; // axis[n].sw_endstop_max
 extern bool axis_known_position[3]; // axis[n].is_known
 extern bool axis_homed[3]; // axis[n].is_homed
+extern volatile bool wait_for_heatup;
 
 // GCode support for external objects
 bool code_seen(char);
@@ -320,7 +319,7 @@ float code_value_temp_diff();
   extern float z_endstop_adj;
 #endif
 
-#if ENABLED(AUTO_BED_LEVELING_FEATURE)
+#if HAS_BED_PROBE
   extern float zprobe_zoffset;
 #endif
 
@@ -346,8 +345,13 @@ float code_value_temp_diff();
   extern int meas_delay_cm; //delay distance
 #endif
 
-#if HAS_ANALOG_FILRUNOUT
-  extern float filrunout_range_meas; // holds the value for the filament detection
+#if ENABLED(FILAMENT_CHANGE_FEATURE)
+  enum FilamentChangeMenuResponse {
+    FILAMENT_CHANGE_RESPONSE_WAIT_FOR,
+    FILAMENT_CHANGE_RESPONSE_EXTRUDE_MORE,
+    FILAMENT_CHANGE_RESPONSE_RESUME_PRINT
+  };
+  extern FilamentChangeMenuResponse filament_change_menu_response;
 #endif
 
 #if ENABLED(PID_ADD_EXTRUSION_RATE)
@@ -357,7 +361,7 @@ float code_value_temp_diff();
 #if ENABLED(FWRETRACT)
   extern bool autoretract_enabled;
   extern bool retracted[EXTRUDERS]; // extruder[n].retracted
-  extern float retract_length, retract_length_swap, retract_feedrate, retract_zlift;
+  extern float retract_length, retract_length_swap, retract_feedrate_mm_s, retract_zlift;
   extern float retract_recover_length, retract_recover_length_swap, retract_recover_feedrate;
 #endif
 
@@ -376,5 +380,16 @@ extern uint8_t active_extruder;
 #endif
 
 void calculate_volumetric_multipliers();
+
+// Buzzer
+#if HAS_BUZZER
+  #if ENABLED(SPEAKER)
+    #include "speaker.h"
+    extern Speaker buzzer;
+  #else
+    #include "buzzer.h"
+    extern Buzzer buzzer;
+  #endif
+#endif
 
 #endif //MARLIN_H

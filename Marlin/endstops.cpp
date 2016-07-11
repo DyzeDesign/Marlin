@@ -186,10 +186,7 @@ void Endstops::report_state() {
       if (stepper.abort_on_endstop_hit) {
         card.sdprinting = false;
         card.closefile();
-        stepper.quick_stop();
-        #if DISABLED(DELTA) && DISABLED(SCARA)
-          set_current_position_from_planner();
-        #endif
+        quickstop_stepper();
         thermalManager.disable_all_heaters(); // switch off all heaters.
       }
     #endif
@@ -197,7 +194,7 @@ void Endstops::report_state() {
 } // Endstops::report_state
 
 void Endstops::M119() {
-  SERIAL_PROTOCOLLN(MSG_M119_REPORT);
+  SERIAL_PROTOCOLLNPGM(MSG_M119_REPORT);
   #if HAS_X_MIN
     SERIAL_PROTOCOLPGM(MSG_X_MIN);
     SERIAL_PROTOCOLLN(((READ(X_MIN_PIN)^X_MIN_ENDSTOP_INVERTING) ? MSG_ENDSTOP_HIT : MSG_ENDSTOP_OPEN));

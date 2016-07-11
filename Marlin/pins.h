@@ -31,6 +31,8 @@
   #include "pins_GEN7_13.h"
 #elif MB(GEN7_14)
   #include "pins_GEN7_14.h"
+#elif MB(CNCONTROLS_12)
+  #include "pins_CNCONTROLS_12.h"
 #elif MB(CHEAPTRONIC)
   #include "pins_CHEAPTRONIC.h"
 #elif MB(SETHI)
@@ -75,6 +77,8 @@
   #include "pins_3DRAG.h"
 #elif MB(K8200)
   #include "pins_K8200.h"
+#elif MB(K8400)
+  #include "pins_K8400.h"
 #elif MB(TEENSYLU)
   #include "pins_TEENSYLU.h"
 #elif MB(RUMBA)
@@ -127,6 +131,8 @@
   #include "pins_MKS_BASE.h"
 #elif MB(RIGIDBOARD)
   #include "pins_RIGIDBOARD.h"
+#elif MB(RIGIDBOARD_V2)
+  #include "pins_RIGIDBOARD_V2.h"
 #elif MB(MEGACONTROLLER)
   #include "pins_MEGACONTROLLER.h"
 #elif MB(BQ_ZUM_MEGA_3D)
