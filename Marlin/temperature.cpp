@@ -188,7 +188,8 @@ unsigned char Temperature::soft_pwm[HOTENDS];
 #endif
 
 #if HAS_ANALOG_FILRUNOUT
-  int Temperature::current_raw_filrunout = 0;
+  int Temperature::current_raw_filrunout = 0;  //Holds raw tension value from filament detector
+  const float Temperature::FILAMENT_DETECTED = 1.5;  //Holds minimum tension value to assume a filament is present
 #endif
 
 #if HAS_PID_HEATING
@@ -924,17 +925,12 @@ void Temperature::updateTemperaturesFromRawValues() {
 
   // Convert raw values read to volt
   float Temperature::analog2Volt() {
-     return current_raw_filrunout / 16383.0 * 5.0;
+     return current_raw_filrunout / 1023.0 * 5.0;
   }
 
   // convert analog readings to bool indicating if a filament is present
-  bool Temperature::hasFilament()
-  {
-     float anal2v = analog2Volt();
-     SERIAL_ECHO(" HAS FILAMENT: ");
-     SERIAL_ECHOLN(anal2v);
-
-     return analog2Volt() > 2.5;
+  bool Temperature::hasFilament()  {
+     return analog2Volt() > FILAMENT_DETECTED;
   }
 
 #endif
@@ -1434,8 +1430,8 @@ void Temperature::isr() {
     static unsigned long raw_filwidth_value = 0;
   #endif
 
-  #if HAS_ANALOG_FILRUNOUT//ENABLED()
-    static unsigned long raw_filrunout_value = 0;
+  #if HAS_ANALOG_FILRUNOUT
+    static unsigned long raw_filrunout_value = 1000000;
   #endif
 
   #if DISABLED(SLOW_PWM_HEATERS)
@@ -1731,7 +1727,6 @@ void Temperature::isr() {
         }
       #endif
       temp_state = Prepare_ANALOG_FILRUNOUT;
-      temp_count++;
       break;
 
    case Prepare_ANALOG_FILRUNOUT:
@@ -1743,9 +1738,8 @@ void Temperature::isr() {
       break;
     case Measure_ANALOG_FILRUNOUT:
       #if HAS_ANALOG_FILRUNOUT
-       raw_filrunout_value -= (raw_filrunout_value >> 7); //multiply raw_filrunout_value by 127/128
-       raw_filrunout_value += ((unsigned long)ADC << 7); //add new ADC reading
-       //raw_filrunout_value += ADC;
+       raw_filrunout_value -= (raw_filrunout_value >> 5); //multiply raw_filrunout_value by 31/32
+       raw_filrunout_value += ((unsigned long)ADC << 5); //add new ADC reading
       #endif
       temp_state = PrepareTemp_0;
       temp_count++;
@@ -1771,8 +1765,7 @@ void Temperature::isr() {
     #endif
 
     #if HAS_ANALOG_FILRUNOUT
-      current_raw_filrunout = raw_filrunout_value >> 10;  // Divide to get to 0-16384 range since we used 1/128 IIR filter approach
-      //current_raw_filrunout = raw_filrunout_value; js// add IIR filter there too
+      current_raw_filrunout = raw_filrunout_value >> 10;  // Divide to get to 0-1024 range since we used 1/32 IIR filter approach
     #endif
 
     temp_count = 0;

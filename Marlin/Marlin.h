@@ -236,9 +236,6 @@ void kill(const char*);
 
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
   void handle_filament_runout();
-  #if HAS_ANALOG_FILRUNOUT//ENABLED(FILRUNOUT_ANALOG_PIN)
-    void test_analog_fialement_runout();
-  #endif //FILAMENT_RUNOUT_ANALOG_PIN
 #endif // FILAMENT_RUNOUT_SENSOR
 
 /**

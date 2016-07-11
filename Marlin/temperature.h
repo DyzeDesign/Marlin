@@ -194,8 +194,9 @@ class Temperature {
       static int current_raw_filwidth;  //Holds measured filament diameter - one extruder only
     #endif
 
-    #if HAS_ANALOG_FILRUNOUT//ENABLED()
-      static int current_raw_filrunout;  //Holds 
+    #if HAS_ANALOG_FILRUNOUT
+      static int current_raw_filrunout;  //Holds raw tension value from filament detector
+      static const float FILAMENT_DETECTED;  //Holds minimum tension value to assume a filament is present
     #endif
 
   public:
