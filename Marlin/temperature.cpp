@@ -906,9 +906,6 @@ void Temperature::updateTemperaturesFromRawValues() {
   #if ENABLED(FILAMENT_WIDTH_SENSOR)
     filament_width_meas = analog2widthFil();
   #endif
-  #if HAS_ANALOG_FIL_RUNOUT
-    filrunout_range_meas = analog2Volt();
-  #endif
 
   #if ENABLED(USE_WATCHDOG)
     // Reset the watchdog after we know we have a temperature measurement.
