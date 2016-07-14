@@ -129,18 +129,16 @@ float Planner::previous_nominal_speed;
  * Class and Instance Methods
  */
 
-Planner::Planner() {
-  #if ENABLED(AUTO_BED_LEVELING_FEATURE)
-    bed_level_matrix.set_to_identity();
-  #endif
-  init();
-}
+Planner::Planner() { init(); }
 
 void Planner::init() {
   block_buffer_head = block_buffer_tail = 0;
   memset(position, 0, sizeof(position)); // clear position
   for (int i = 0; i < NUM_AXIS; i++) previous_speed[i] = 0.0;
   previous_nominal_speed = 0.0;
+  #if ENABLED(AUTO_BED_LEVELING_FEATURE)
+    bed_level_matrix.set_to_identity();
+  #endif
 }
 
 /**
@@ -397,8 +395,12 @@ void Planner::check_axes_activity() {
   #endif
 
   #if ENABLED(BARICUDA)
-    unsigned char tail_valve_pressure = baricuda_valve_pressure,
-                  tail_e_to_p_pressure = baricuda_e_to_p_pressure;
+    #if HAS_HEATER_1
+      unsigned char tail_valve_pressure = baricuda_valve_pressure;
+    #endif
+    #if HAS_HEATER_2
+      unsigned char tail_e_to_p_pressure = baricuda_e_to_p_pressure;
+    #endif
   #endif
 
   if (blocks_queued()) {
@@ -411,8 +413,12 @@ void Planner::check_axes_activity() {
 
     #if ENABLED(BARICUDA)
       block = &block_buffer[block_buffer_tail];
-      tail_valve_pressure = block->valve_pressure;
-      tail_e_to_p_pressure = block->e_to_p_pressure;
+      #if HAS_HEATER_1
+        tail_valve_pressure = block->valve_pressure;
+      #endif
+      #if HAS_HEATER_2
+        tail_e_to_p_pressure = block->e_to_p_pressure;
+      #endif
     #endif
 
     for (uint8_t b = block_buffer_tail; b != block_buffer_head; b = next_block_index(b)) {

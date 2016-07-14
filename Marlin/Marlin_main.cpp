@@ -577,22 +577,23 @@ void serial_echopair_P(const char* s_P, unsigned long v) { serialprintPGM(s_P); 
 static void report_current_position();
 
 #if ENABLED(DEBUG_LEVELING_FEATURE)
-  void print_xyz(const char* suffix, const float x, const float y, const float z) {
+  void print_xyz(const char* prefix, const char* suffix, const float x, const float y, const float z) {
+    serialprintPGM(prefix);
     SERIAL_ECHOPAIR("(", x);
     SERIAL_ECHOPAIR(", ", y);
     SERIAL_ECHOPAIR(", ", z);
-    SERIAL_ECHOLNPGM(") ");
-    SERIAL_ECHO(suffix);
+    SERIAL_ECHOPGM(")");
+    serialprintPGM(suffix);
   }
-  void print_xyz(const char* suffix, const float xyz[]) {
-    print_xyz(suffix, xyz[X_AXIS], xyz[Y_AXIS], xyz[Z_AXIS]);
+  void print_xyz(const char* prefix,const char* suffix, const float xyz[]) {
+    print_xyz(prefix, suffix, xyz[X_AXIS], xyz[Y_AXIS], xyz[Z_AXIS]);
   }
   #if ENABLED(AUTO_BED_LEVELING_FEATURE)
-    void print_xyz(const char* suffix, const vector_3 &xyz) {
-      print_xyz(suffix, xyz.x, xyz.y, xyz.z);
+    void print_xyz(const char* prefix,const char* suffix, const vector_3 &xyz) {
+      print_xyz(prefix, suffix, xyz.x, xyz.y, xyz.z);
     }
   #endif
-  #define DEBUG_POS(PREFIX,VAR) do{ SERIAL_ECHOPGM(PREFIX); print_xyz(" > " STRINGIFY(VAR), VAR); }while(0)
+  #define DEBUG_POS(SUFFIX,VAR) do{ print_xyz(PSTR(STRINGIFY(VAR) "="), PSTR(" : " SUFFIX "\n"), VAR); }while(0)
 #endif
 
 #if ENABLED(DELTA) || ENABLED(SCARA)
@@ -1529,7 +1530,7 @@ static void set_axis_is_at_home(AxisEnum axis) {
     current_position[axis] = base_home_pos(axis) + home_offset[axis];
     update_software_endstops(axis);
 
-    #if HAS_BED_PROBE && Z_HOME_DIR < 0
+    #if HAS_BED_PROBE && Z_HOME_DIR < 0 && DISABLED(Z_MIN_PROBE_ENDSTOP)
       if (axis == Z_AXIS) {
         current_position[Z_AXIS] -= zprobe_zoffset;
         #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -1544,6 +1545,7 @@ static void set_axis_is_at_home(AxisEnum axis) {
     #if ENABLED(DEBUG_LEVELING_FEATURE)
       if (DEBUGGING(LEVELING)) {
         SERIAL_ECHOPAIR("> home_offset[axis]==", home_offset[axis]);
+        SERIAL_EOL;
         DEBUG_POS("", current_position);
       }
     #endif
@@ -1657,7 +1659,7 @@ static void clean_up_after_endstop_or_probe_move() {
     float old_feedrate = feedrate;
 
     #if ENABLED(DEBUG_LEVELING_FEATURE)
-      if (DEBUGGING(LEVELING)) print_xyz("do_blocking_move_to", x, y, z);
+      if (DEBUGGING(LEVELING)) print_xyz(PSTR("do_blocking_move_to"), "", x, y, z);
     #endif
 
     #if ENABLED(DELTA)
@@ -1711,12 +1713,6 @@ static void clean_up_after_endstop_or_probe_move() {
 
   /**
    * Raise Z to a minimum height to make room for a probe to move
-   *
-   * zprobe_zoffset: Negative of the Z height where the probe engages
-   *        z_raise: The probing raise distance
-   *
-   * The zprobe_zoffset is negative for a switch below the nozzle, so
-   * multiply by Z_HOME_DIR (-1) to move enough away from the bed.
    */
   inline void do_probe_raise(float z_raise) {
     #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -1727,7 +1723,7 @@ static void clean_up_after_endstop_or_probe_move() {
     #endif
     float z_dest = home_offset[Z_AXIS] + z_raise;
 
-    if ((Z_HOME_DIR) < 0 && zprobe_zoffset < 0)
+    if (zprobe_zoffset < 0)
       z_dest -= zprobe_zoffset;
 
     if (z_dest > current_position[Z_AXIS])
@@ -2366,7 +2362,7 @@ static void homeaxis(AxisEnum axis) {
     home_dir(axis);
 
   // Homing Z towards the bed? Deploy the Z probe or endstop.
-  #if HAS_BED_PROBE
+  #if HAS_BED_PROBE && DISABLED(Z_MIN_PROBE_ENDSTOP)
     if (axis == Z_AXIS && axis_home_dir < 0) {
       #if ENABLED(DEBUG_LEVELING_FEATURE)
         if (DEBUGGING(LEVELING)) SERIAL_ECHOPGM("> ");
@@ -2467,7 +2463,7 @@ static void homeaxis(AxisEnum axis) {
   axis_homed[axis] = true;
 
   // Put away the Z probe
-  #if HAS_BED_PROBE
+  #if HAS_BED_PROBE && DISABLED(Z_MIN_PROBE_ENDSTOP)
     if (axis == Z_AXIS && axis_home_dir < 0) {
       #if ENABLED(DEBUG_LEVELING_FEATURE)
         if (DEBUGGING(LEVELING)) SERIAL_ECHOPGM("> ");
@@ -4337,7 +4333,7 @@ inline void gcode_M104() {
 
     #if ENABLED(PRINTJOB_TIMER_AUTOSTART)
       /**
-       * Stop the timer at the end of print, starting is managed by 
+       * Stop the timer at the end of print, starting is managed by
        * 'heat and wait' M109.
        * We use half EXTRUDE_MINTEMP here to allow nozzles to be put into hot
        * stand by mode, for instance in a dual extruder setup, without affecting
@@ -4649,7 +4645,7 @@ inline void gcode_M109() {
       #if ENABLED(PRINTJOB_TIMER_AUTOSTART)
         if (code_value_temp_abs() > BED_MINTEMP) {
           /**
-          * We start the timer when 'heating and waiting' command arrives, LCD 
+          * We start the timer when 'heating and waiting' command arrives, LCD
           * functions never wait. Cooling down managed by extruders.
           *
           * We do not check if the timer is already running because this check will
@@ -4866,32 +4862,32 @@ inline void gcode_M140() {
         case 0:
           if (code_seen('H')) {
             v = code_value_int();
-            plaPreheatHotendTemp = constrain(v, EXTRUDE_MINTEMP, HEATER_0_MAXTEMP - 15);
+            preheatHotendTemp1 = constrain(v, EXTRUDE_MINTEMP, HEATER_0_MAXTEMP - 15);
           }
           if (code_seen('F')) {
             v = code_value_int();
-            plaPreheatFanSpeed = constrain(v, 0, 255);
+            preheatFanSpeed1 = constrain(v, 0, 255);
           }
           #if TEMP_SENSOR_BED != 0
             if (code_seen('B')) {
               v = code_value_int();
-              plaPreheatHPBTemp = constrain(v, BED_MINTEMP, BED_MAXTEMP - 15);
+              preheatBedTemp1 = constrain(v, BED_MINTEMP, BED_MAXTEMP - 15);
             }
           #endif
           break;
         case 1:
           if (code_seen('H')) {
             v = code_value_int();
-            absPreheatHotendTemp = constrain(v, EXTRUDE_MINTEMP, HEATER_0_MAXTEMP - 15);
+            preheatHotendTemp2 = constrain(v, EXTRUDE_MINTEMP, HEATER_0_MAXTEMP - 15);
           }
           if (code_seen('F')) {
             v = code_value_int();
-            absPreheatFanSpeed = constrain(v, 0, 255);
+            preheatFanSpeed2 = constrain(v, 0, 255);
           }
           #if TEMP_SENSOR_BED != 0
             if (code_seen('B')) {
               v = code_value_int();
-              absPreheatHPBTemp = constrain(v, BED_MINTEMP, BED_MAXTEMP - 15);
+              preheatBedTemp2 = constrain(v, BED_MINTEMP, BED_MAXTEMP - 15);
             }
           #endif
           break;
@@ -5707,10 +5703,36 @@ inline void gcode_M226() {
 #if ENABLED(PREVENT_DANGEROUS_EXTRUDE)
 
   /**
-   * M302: Allow cold extrudes, or set the minimum extrude S<temperature>.
+   * M302: Allow cold extrudes, or set the minimum extrude temperature
+   *
+   *       S<temperature> sets the minimum extrude temperature
+   *       P<bool> enables (1) or disables (0) cold extrusion
+   *
+   *  Examples:
+   *
+   *       M302         ; report current cold extrusion state
+   *       M302 P0      ; enable cold extrusion checking
+   *       M302 P1      ; disables cold extrusion checking
+   *       M302 S0      ; always allow extrusion (disables checking)
+   *       M302 S170    ; only allow extrusion above 170
+   *       M302 S170 P1 ; set min extrude temp to 170 but leave disabled
    */
   inline void gcode_M302() {
-    thermalManager.extrude_min_temp = code_seen('S') ? code_value_temp_abs() : 0;
+    bool seen_S = code_seen('S');
+    if (seen_S) {
+      thermalManager.extrude_min_temp = code_value_temp_abs();
+      thermalManager.allow_cold_extrude = (thermalManager.extrude_min_temp == 0);
+    }
+
+    if (code_seen('P'))
+      thermalManager.allow_cold_extrude = (thermalManager.extrude_min_temp == 0) || code_value_bool();
+    else if (!seen_S) {
+      // Report current state
+      SERIAL_ECHO_START;
+      SERIAL_ECHOPAIR("Cold extrudes are ", (thermalManager.allow_cold_extrude ? "en" : "dis"));
+      SERIAL_ECHOPAIR("abled (min temp ", int(thermalManager.extrude_min_temp + 0.5));
+      SERIAL_ECHOLNPGM("C)");
+    }
   }
 
 #endif // PREVENT_DANGEROUS_EXTRUDE
@@ -5969,7 +5991,7 @@ void quickstop_stepper() {
    * Use either 'M421 X<linear> Y<linear> Z<linear>' or 'M421 I<xindex> J<yindex> Z<linear>'
    */
   inline void gcode_M421() {
-    int8_t px, py;
+    int8_t px = 0, py = 0;
     float z = 0;
     bool hasX, hasY, hasZ, hasI, hasJ;
     if ((hasX = code_seen('X'))) px = mbl.probe_index_x(code_value_axis_units(X_AXIS));
@@ -6214,7 +6236,9 @@ inline void gcode_M503() {
     disable_e3();
     delay(100);
 
-    millis_t next_tick = 0;
+    #if HAS_BUZZER
+      millis_t next_tick = 0;
+    #endif
 
     // Wait for filament insert by user and press button
     lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_INSERT);

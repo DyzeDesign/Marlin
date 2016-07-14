@@ -76,8 +76,14 @@
 /**
  * Dual Stepper Drivers
  */
-#if ENABLED(Z_DUAL_STEPPER_DRIVERS) && ENABLED(Y_DUAL_STEPPER_DRIVERS)
-  #error "You cannot have dual stepper drivers for both Y and Z."
+#if ENABLED(X_DUAL_STEPPER_DRIVERS) && ENABLED(DUAL_X_CARRIAGE)
+  #error "DUAL_X_CARRIAGE is not compatible with X_DUAL_STEPPER_DRIVERS."
+#elif ENABLED(X_DUAL_STEPPER_DRIVERS) && (!HAS_X2_ENABLE || !HAS_X2_STEP || !HAS_X2_DIR)
+  #error "X_DUAL_STEPPER_DRIVERS requires X2 pins (and an extra E plug)."
+#elif ENABLED(Y_DUAL_STEPPER_DRIVERS) && (!HAS_Y2_ENABLE || !HAS_Y2_STEP || !HAS_Y2_DIR)
+  #error "Y_DUAL_STEPPER_DRIVERS requires Y2 pins (and an extra E plug)."
+#elif ENABLED(Z_DUAL_STEPPER_DRIVERS) && (!HAS_Z2_ENABLE || !HAS_Z2_STEP || !HAS_Z2_DIR)
+  #error "Z_DUAL_STEPPER_DRIVERS requires Z2 pins (and an extra E plug)."
 #endif
 
 /**
@@ -152,14 +158,6 @@
     #error "EXTRUDERS must be 1 with HEATERS_PARALLEL."
   #endif
 
-  #if ENABLED(Y_DUAL_STEPPER_DRIVERS)
-    #error "EXTRUDERS must be 1 with Y_DUAL_STEPPER_DRIVERS."
-  #endif
-
-  #if ENABLED(Z_DUAL_STEPPER_DRIVERS)
-    #error "EXTRUDERS must be 1 with Z_DUAL_STEPPER_DRIVERS."
-  #endif
-
 #elif ENABLED(SINGLENOZZLE)
   #error "SINGLENOZZLE requires 2 or more EXTRUDERS."
 #endif
@@ -202,11 +200,9 @@
 #if ENABLED(MESH_BED_LEVELING)
   #if ENABLED(DELTA)
     #error "MESH_BED_LEVELING does not yet support DELTA printers."
-  #endif
-  #if ENABLED(AUTO_BED_LEVELING_FEATURE)
+  #elif ENABLED(AUTO_BED_LEVELING_FEATURE)
     #error "Select AUTO_BED_LEVELING_FEATURE or MESH_BED_LEVELING, not both."
-  #endif
-  #if MESH_NUM_X_POINTS > 7 || MESH_NUM_Y_POINTS > 7
+  #elif MESH_NUM_X_POINTS > 7 || MESH_NUM_Y_POINTS > 7
     #error "MESH_NUM_X_POINTS and MESH_NUM_Y_POINTS need to be less than 8."
   #endif
 #elif ENABLED(MANUAL_BED_LEVELING)
@@ -218,6 +214,10 @@
  */
 
 #if PROBE_SELECTED
+
+  #if ENABLED(Z_PROBE_SLED) && ENABLED(DELTA)
+    #error "You cannot use Z_PROBE_SLED with DELTA."
+  #endif
 
   /**
    * NUM_SERVOS is required for a Z servo probe
@@ -327,6 +327,13 @@
 #if ENABLED(AUTO_BED_LEVELING_FEATURE)
 
   /**
+   * Delta has limited bed leveling options
+   */
+  #if ENABLED(DELTA) && DISABLED(AUTO_BED_LEVELING_GRID)
+    #error "You must use AUTO_BED_LEVELING_GRID for DELTA bed leveling."
+  #endif
+
+  /**
    * Require a Z min pin
    */
   #if !PIN_EXISTS(Z_MIN)
@@ -408,25 +415,6 @@
  */
 #if ENABLED(U8GLIB_SSD1306) && ENABLED(U8GLIB_SH1106)
   #error "Only enable one SAV_3DGLCD display type: U8GLIB_SSD1306 or U8GLIB_SH1106."
-#endif
-
-/**
- * Delta has limited bed leveling options
- */
-#if ENABLED(DELTA)
-
-  #if ENABLED(AUTO_BED_LEVELING_FEATURE)
-
-    #if DISABLED(AUTO_BED_LEVELING_GRID)
-      #error "Only AUTO_BED_LEVELING_GRID is supported with DELTA."
-    #endif
-
-    #if ENABLED(Z_PROBE_SLED)
-      #error "You cannot use Z_PROBE_SLED with DELTA."
-    #endif
-
-  #endif
-
 #endif
 
 /**
@@ -644,6 +632,18 @@
   #error "SERVO_DEACTIVATION_DELAY is deprecated. Use SERVO_DELAY instead."
 #elif ENABLED(FILAMENTCHANGEENABLE)
   #error "FILAMENTCHANGEENABLE is now FILAMENT_CHANGE_FEATURE. Please update your configuration."
+#elif defined(PLA_PREHEAT_HOTEND_TEMP)
+  #error "PLA_PREHEAT_HOTEND_TEMP is now PREHEAT_1_TEMP_HOTEND. Please update your configuration."
+#elif defined(PLA_PREHEAT_HPB_TEMP)
+  #error "PLA_PREHEAT_HPB_TEMP is now PREHEAT_1_TEMP_BED. Please update your configuration."
+#elif defined(PLA_PREHEAT_FAN_SPEED)
+  #error "PLA_PREHEAT_FAN_SPEED is now PREHEAT_1_FAN_SPEED. Please update your configuration."
+#elif defined(ABS_PREHEAT_HOTEND_TEMP)
+  #error "ABS_PREHEAT_HOTEND_TEMP is now PREHEAT_2_TEMP_HOTEND. Please update your configuration."
+#elif defined(ABS_PREHEAT_HPB_TEMP)
+  #error "ABS_PREHEAT_HPB_TEMP is now PREHEAT_2_TEMP_BED. Please update your configuration."
+#elif defined(ABS_PREHEAT_FAN_SPEED)
+  #error "ABS_PREHEAT_FAN_SPEED is now PREHEAT_2_FAN_SPEED. Please update your configuration."
 #endif
 
 #endif //SANITYCHECK_H
