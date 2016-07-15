@@ -120,8 +120,8 @@
  * Filament Runout needs a pin and either SD Support or Auto print start detection
  */
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
-  #if !HAS_FIL_RUNOUT
-    #error "FILAMENT_RUNOUT_SENSOR requires FIL_RUNOUT_PIN."
+  #if !HAS_FIL_RUNOUT && !HAS_ANALOG_FIL_RUNOUT
+    #error "FILAMENT_RUNOUT_SENSOR requires FIL_RUNOUT_PIN or FIL_RUNOUT_ANALOG_PIN."
   #elif DISABLED(SDSUPPORT) && DISABLED(PRINTJOB_TIMER_AUTOSTART)
     #error "FILAMENT_RUNOUT_SENSOR requires SDSUPPORT or PRINTJOB_TIMER_AUTOSTART."
   #endif

@@ -495,7 +495,7 @@ static uint8_t target_extruder;
   int meas_delay_cm = MEASUREMENT_DELAY_CM;  //distance delay setting
 #endif
 
-#if HAS_ANALOG_FILRUNOUT
+#if HAS_ANALOG_FIL_RUNOUT
   float filrunout_range_meas = 0.0; // holds the value for the filament detection
 #endif
 
@@ -8090,11 +8090,11 @@ void idle(
  */
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
 
-  #if ENABLED(FILAMENT_RUNOUT_SENSOR)
-    if ((IS_SD_PRINTING || print_job_timer.isRunning()) && !(READ(FIL_RUNOUT_PIN) ^ FIL_RUNOUT_INVERTING))
-      handle_filament_runout();
-  #elif HAS_ANALOG_FILRUNOUT
+  #if HAS_ANALOG_FIL_RUNOUT
     if (!Temperature::hasFilament())
+      handle_filament_runout();
+  #elif ENABLED(FILAMENT_RUNOUT_SENSOR)
+    if ((IS_SD_PRINTING || print_job_timer.isRunning()) && !(READ(FIL_RUNOUT_PIN) ^ FIL_RUNOUT_INVERTING))
       handle_filament_runout();
   #endif
 
