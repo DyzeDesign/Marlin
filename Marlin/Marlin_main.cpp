@@ -8184,7 +8184,7 @@ void idle(
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
 
   #if HAS_ANALOG_FIL_RUNOUT
-    if (!Temperature::hasFilament())
+    if ((IS_SD_PRINTING || print_job_timer.isRunning()) && !Temperature::hasFilament())
       handle_filament_runout();
   #elif ENABLED(FILAMENT_RUNOUT_SENSOR)
     if ((IS_SD_PRINTING || print_job_timer.isRunning()) && !(READ(FIL_RUNOUT_PIN) ^ FIL_RUNOUT_INVERTING))
